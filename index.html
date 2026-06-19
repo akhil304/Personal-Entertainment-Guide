@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CuratorTaste AI — Personal Entertainment Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  :root{--bg:#0c0c0f;--surface:#141418;--surface2:#1c1c22;--border:#2a2a35;--accent:#7c6ef7;--accent2:#4ecdc4;--accent3:#f7c76e;--red:#f76e7c;--text:#e8e8f0;--muted:#8888a0;--pill-bg:#1e1e2a}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5}
+  .app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+  .sidebar{background:var(--surface);border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .logo{padding:0 20px 24px;border-bottom:1px solid var(--border);margin-bottom:16px}
+  .logo-mark{font-size:18px;font-weight:600;letter-spacing:-.5px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .logo-sub{font-size:11px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;border-left:2px solid transparent;transition:all .15s}
+  .nav-item:hover{color:var(--text);background:var(--surface2)}
+  .nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(124,110,247,.08)}
+  .sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid var(--border)}
+  .signal-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)}
+  .signal-count span{color:var(--accent2);font-weight:500}
+  .main{padding:32px;overflow-y:auto}
+  .page{display:none}.page.active{display:block}
+  .page-header{margin-bottom:28px}
+  .page-title{font-size:22px;font-weight:600;letter-spacing:-.5px}
+  .page-sub{font-size:13px;color:var(--muted);margin-top:4px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+  .card-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+  .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+  .stat-val{font-size:28px;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:-1px}
+  .stat-val.accent{color:var(--accent)}.stat-val.green{color:var(--accent2)}.stat-val.amber{color:var(--accent3)}
+  .stat-label{font-size:11px;color:var(--muted);margin-top:4px}
+  .two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:16px}
+  .rec-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+  .rec-item:last-child{border-bottom:none;padding-bottom:0}
+  .rec-thumb{width:48px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .rec-body{flex:1;min-width:0}
+  .rec-title{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rec-meta{font-size:11px;color:var(--muted);margin-top:2px}
+  .rec-bar-wrap{display:flex;align-items:center;gap:8px;margin-top:6px}
+  .rec-bar-bg{flex:1;height:3px;background:var(--surface2);border-radius:2px;overflow:hidden}
+  .rec-bar{height:3px;border-radius:2px}
+  .rec-score{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;min-width:30px}
+  .fp-row{margin-bottom:10px}
+  .fp-labels{display:flex;justify-content:space-between;margin-bottom:5px}
+  .fp-trait{font-size:12px;color:var(--muted)}.fp-pct{font-size:12px;font-weight:500;font-family:'DM Mono',monospace}
+  .fp-bar-bg{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
+  .fp-bar{height:4px;border-radius:2px;transition:width .6s ease}
+  .mood-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+  .tag{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;background:var(--pill-bg);color:var(--muted);border:1px solid var(--border)}
+  .tag.accent{background:rgba(124,110,247,.15);color:var(--accent);border-color:rgba(124,110,247,.3)}
+  .tag.green{background:rgba(78,205,196,.12);color:var(--accent2);border-color:rgba(78,205,196,.3)}
+  .insight-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+  .insight-dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0}
+  .insight-text{font-size:13px;color:var(--muted);line-height:1.5}
+  .insight-text strong{color:var(--text);font-weight:500}
+  .pref-input-row{display:flex;gap:10px;margin-bottom:20px}
+  .pref-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .15s}
+  .pref-input:focus{border-color:var(--accent)}
+  .pref-input::placeholder{color:var(--muted)}
+  .btn{padding:10px 18px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;transition:opacity .15s}
+  .btn:hover{opacity:.85}.btn-primary{background:var(--accent);color:#fff}
+  .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+  .btn-sm{padding:6px 12px;font-size:12px}
+  .pref-list{display:flex;flex-direction:column;gap:8px}
+  .pref-rule{display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+  .pref-action-badge{font-size:10px;font-weight:600;letter-spacing:.06em;padding:2px 8px;border-radius:4px;text-transform:uppercase;flex-shrink:0}
+  .badge-ignore{background:rgba(247,110,124,.15);color:var(--red)}
+  .badge-boost{background:rgba(78,205,196,.12);color:var(--accent2)}
+  .badge-filter{background:rgba(247,199,110,.12);color:var(--accent3)}
+  .pref-reason{flex:1;font-size:13px;color:var(--text)}
+  .pref-time{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+  .pref-delete{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 4px}
+  .pref-delete:hover{color:var(--red)}
+  .quick-cmds{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+  .quick-cmd{font-size:12px;padding:6px 12px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Mono',monospace;transition:all .15s}
+  .quick-cmd:hover{border-color:var(--accent);color:var(--accent)}
+  .signal-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+  .signal-row:last-child{border-bottom:none}
+  .signal-event{font-size:10px;font-weight:600;letter-spacing:.06em;padding:2px 7px;border-radius:4px;text-transform:uppercase;flex-shrink:0;min-width:60px;text-align:center}
+  .ev-liked{background:rgba(124,110,247,.15);color:var(--accent)}
+  .ev-watched{background:rgba(78,205,196,.12);color:var(--accent2)}
+  .ev-skipped{background:rgba(247,110,124,.12);color:var(--red)}
+  .ev-saved{background:rgba(247,199,110,.12);color:var(--accent3)}
+  .signal-title{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+  .signal-src{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;flex-shrink:0}
+  .signal-time{font-size:11px;color:var(--muted);flex-shrink:0}
+  .log-input-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .log-select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none}
+  .setup-step{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:12px}
+  .setup-step-header{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .step-num{width:28px;height:28px;border-radius:50%;background:rgba(124,110,247,.15);color:var(--accent);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .step-title{font-size:14px;font-weight:500}
+  .step-body{font-size:13px;color:var(--muted);line-height:1.7;padding-left:40px}
+  .code-block{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:'DM Mono',monospace;font-size:12px;color:var(--accent2);margin-top:8px;white-space:pre;overflow-x:auto}
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,.4);transform:translateY(80px);opacity:0;transition:all .3s ease;z-index:999;pointer-events:none}
+  .toast.show{transform:translateY(0);opacity:1}
+  .toast.success{border-color:rgba(78,205,196,.4)}.toast.error{border-color:rgba(247,110,124,.4)}
+  .empty{text-align:center;padding:40px 20px;color:var(--muted)}
+  .empty-icon{font-size:32px;margin-bottom:10px}.empty-text{font-size:13px}
+  @media(max-width:768px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto;flex-direction:row;flex-wrap:wrap;padding:12px}.logo{padding:0;border:none;margin-bottom:0}.sidebar-footer{display:none}.stats-row{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr}.main{padding:16px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">CuratorTaste AI</div>
+      <div class="logo-sub">personal entertainment guide</div>
+    </div>
+    <nav>
+      <div class="nav-item active" onclick="showPage('dashboard')"><span>◈</span> Dashboard</div>
+      <div class="nav-item" onclick="showPage('recommendations')"><span>✦</span> Recommendations</div>
+      <div class="nav-item" onclick="showPage('fingerprint')"><span>◉</span> Taste Fingerprint</div>
+      <div class="nav-item" onclick="showPage('preferences')"><span>⊘</span> Preferences</div>
+      <div class="nav-item" onclick="showPage('signals')"><span>≋</span> Signal Log</div>
+      <div class="nav-item" onclick="showPage('setup')"><span>⚙</span> Setup</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="signal-count">Signals: <span id="totalSignals">0</span></div>
+      <div class="signal-count" style="margin-top:4px">Prefs: <span id="totalPrefs">0</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div class="page-title" id="greeting">Good evening, Akhil</div>
+        <div class="page-sub" id="contextLine">Loading context...</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-val accent" id="statTaste">—</div><div class="stat-label">Taste score</div></div>
+        <div class="stat-card"><div class="stat-val green" id="statGems">0</div><div class="stat-label">Gems surfaced</div></div>
+        <div class="stat-card"><div class="stat-val" id="statSignals">0</div><div class="stat-label">Signals logged</div></div>
+        <div class="stat-card"><div class="stat-val amber" id="statPrefs">0</div><div class="stat-label">Active rules</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-label">Surfaced for you now</div>
+          <div id="dashRecs"><div class="empty"><div class="empty-icon">✦</div><div class="empty-text">Go to Recommendations → Get AI picks</div></div></div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:12px;width:100%" onclick="showPage('recommendations')">See all recommendations →</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="card">
+            <div class="card-label">Taste fingerprint</div>
+            <div id="dashFingerprint"><div class="empty"><div class="empty-text">Log signals to build your fingerprint</div></div></div>
+          </div>
+          <div class="card">
+            <div class="card-label">Tonight's mood pick</div>
+            <div class="mood-tags" id="moodTags"></div>
+            <div id="moodPick" style="font-size:14px;font-weight:500">Detecting mood...</div>
+            <div id="moodSub" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">What the agent learned</div>
+        <div id="agentInsights"><div class="empty"><div class="empty-text">Insights appear as you log signals and set preferences</div></div></div>
+      </div>
+    </div>
+
+    <!-- RECOMMENDATIONS -->
+    <div class="page" id="page-recommendations">
+      <div class="page-header">
+        <div class="page-title">Recommendations</div>
+        <div class="page-sub">Ranked by fingerprint match · filtered by your preference rules</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" id="recBtn" onclick="getRecommendations()">✦ Get AI picks</button>
+        <select class="log-select" id="recTypeFilter">
+          <option value="all">All content</option>
+          <option value="youtube">YouTube</option>
+          <option value="movie">Movies</option>
+          <option value="music">Music</option>
+        </select>
+        <select class="log-select" id="recMoodFilter">
+          <option value="">Auto mood</option>
+          <option value="chill">Chill</option>
+          <option value="focused">Focused</option>
+          <option value="exploratory">Exploratory</option>
+          <option value="active">Active</option>
+        </select>
+      </div>
+      <div class="card"><div id="recList"><div class="empty"><div class="empty-icon">✦</div><div class="empty-text">Click "Get AI picks" to generate personalised recommendations</div></div></div></div>
+      <div id="recContextNote" style="font-size:12px;color:var(--muted);margin-top:12px;font-style:italic"></div>
+    </div>
+
+    <!-- FINGERPRINT -->
+    <div class="page" id="page-fingerprint">
+      <div class="page-header">
+        <div class="page-title">Taste Fingerprint</div>
+        <div class="page-sub">Built from your signals — recomputes automatically</div>
+      </div>
+      <div class="two-col">
+        <div class="card"><div class="card-label">Trait scores</div><div id="fingerprintBars"><div class="empty"><div class="empty-text">Log signals to build your fingerprint</div></div></div></div>
+        <div class="card"><div class="card-label">By content type</div><div id="genreBreakdown"><div class="empty"><div class="empty-text">No data yet</div></div></div></div>
+      </div>
+      <div class="card"><div class="card-label">Time patterns</div><div id="timePatterns" style="font-size:13px;color:var(--muted)">Log signals to see when you consume different content types.</div></div>
+    </div>
+
+    <!-- PREFERENCES -->
+    <div class="page" id="page-preferences">
+      <div class="page-header">
+        <div class="page-title">Preferences</div>
+        <div class="page-sub">Natural language rules applied to every recommendation</div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-label">Add a rule</div>
+        <div class="pref-input-row">
+          <input class="pref-input" id="prefInput" placeholder='e.g. "ignore soccer content" or "no horror after 10pm"' onkeydown="if(event.key==='Enter')addPref()">
+          <button class="btn btn-primary" onclick="addPref()">Add rule</button>
+        </div>
+        <div class="card-label" style="margin-bottom:8px">Quick add</div>
+        <div class="quick-cmds">
+          <div class="quick-cmd" onclick="setQuick('ignore soccer content')">ignore soccer content</div>
+          <div class="quick-cmd" onclick="setQuick('no horror after 10pm')">no horror after 10pm</div>
+          <div class="quick-cmd" onclick="setQuick('more jazz on weekends')">more jazz on weekends</div>
+          <div class="quick-cmd" onclick="setQuick('ignore news content')">ignore news content</div>
+          <div class="quick-cmd" onclick="setQuick('boost documentary films')">boost documentary films</div>
+          <div class="quick-cmd" onclick="setQuick('no comedy late night')">no comedy late night</div>
+          <div class="quick-cmd" onclick="setQuick('more ambient music mornings')">more ambient music mornings</div>
+          <div class="quick-cmd" onclick="setQuick('ignore gaming content')">ignore gaming content</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label" style="display:flex;justify-content:space-between;align-items:center"><span>Active rules (<span id="prefCount">0</span>)</span><button class="btn btn-ghost btn-sm" onclick="clearAllPrefs()">Clear all</button></div>
+        <div id="prefList"><div class="empty"><div class="empty-text">No rules yet — add one above</div></div></div>
+      </div>
+    </div>
+
+    <!-- SIGNALS -->
+    <div class="page" id="page-signals">
+      <div class="page-header">
+        <div class="page-title">Signal Log</div>
+        <div class="page-sub">Every like, watch, skip, and save feeds your taste fingerprint</div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-label">Log a signal</div>
+        <div class="log-input-row">
+          <select class="log-select" id="sigEvent"><option value="liked">👍 Liked</option><option value="watched">▶ Watched</option><option value="skipped">⏭ Skipped</option><option value="saved">🔖 Saved</option></select>
+          <select class="log-select" id="sigType"><option value="youtube">YouTube</option><option value="movie">Movie</option><option value="music">Music</option></select>
+          <input class="pref-input" id="sigTitle" placeholder="Title / channel name" onkeydown="if(event.key==='Enter')logSignal()">
+          <input class="pref-input" id="sigGenre" placeholder="Genre / topic (optional)" style="max-width:180px">
+          <button class="btn btn-primary" onclick="logSignal()">Log</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Recent signals (<span id="sigCount">0</span>)</div>
+        <div id="sigList"><div class="empty"><div class="empty-icon">≋</div><div class="empty-text">No signals yet</div></div></div>
+      </div>
+    </div>
+
+    <!-- SETUP -->
+    <div class="page" id="page-setup">
+      <div class="page-header"><div class="page-title">Setup</div><div class="page-sub">Connect accounts and configure the AI agent</div></div>
+      <div class="setup-step">
+        <div class="setup-step-header"><div class="step-num">1</div><div class="step-title">YouTube — connect your account</div></div>
+        <div class="step-body">
+          Enable YouTube Data API v3 in Google Cloud Console, download <code>client_secret.json</code>, then run:
+          <div class="code-block">python connectors/youtube_connector.py --auth
+python connectors/youtube_connector.py --fetch</div>
+          <a href="https://console.cloud.google.com" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#ff0000;color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:500;text-decoration:none;margin-top:10px">↗ Google Cloud Console</a>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="setup-step-header"><div class="step-num">2</div><div class="step-title">Anthropic API — powers the curator agent</div></div>
+        <div class="step-body">
+          <div class="code-block">export ANTHROPIC_API_KEY=sk-ant-your_key
+python agents/curator_agent.py</div>
+          <a href="https://console.anthropic.com" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:500;text-decoration:none;margin-top:10px">↗ Get API Key</a>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="setup-step-header"><div class="step-num">3</div><div class="step-title">Build fingerprint & run agent</div></div>
+        <div class="step-body">
+          <div class="code-block">python core/fingerprint.py
+python agents/curator_agent.py --command "ignore soccer content"
+python agents/curator_agent.py</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-label">8-week build roadmap</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+          <div style="display:flex;gap:12px;font-size:13px"><span style="color:var(--accent);font-family:'DM Mono',monospace;flex-shrink:0;min-width:52px">Week 1</span><span style="color:var(--muted)">Project setup · YouTube OAuth · pull liked videos</span></div>
+          <div style="display:flex;gap:12px;font-size:13px"><span style="color:var(--accent);font-family:'DM Mono',monospace;flex-shrink:0;min-width:52px">Week 2</span><span style="color:var(--muted)">Signal depth · watch history · JSONL logging</span></div>
+          <div style="display:flex;gap:12px;font-size:13px"><span style="color:var(--accent);font-family:'DM Mono',monospace;flex-shrink:0;min-width:52px">Week 3</span><span style="color:var(--muted)">Fingerprint engine v1 · trait scoring</span></div>
+          <div style="display:flex;gap:12px;font-size:13px"><span style="color:var(--accent);font-family:'DM Mono',monospace;flex-shrink:0;min-width:52px">Week 4</span><span style="color:var(--muted)">Fingerprint persistence · weekly recompute</span></div>
+          <div style="display:flex;gap:12px;font-size:13px"><span style="color:var(--accent);font-family:'DM Mono',monospace;flex-shrink:0;min-width:52px">Week 5</span><span style="color:var(--muted)">Curator agent · Claude-powered recommendation loop</span></div>
+          <div style="display:flex;gap:12px;font-size:13px"><span style="color:var(--accent);font-family:'DM Mono',monospace;flex-shrink:0;min-width:52px">Week 6</span><span style="color:var(--muted)">Preference commands · ignore / boost / filter by time</span></div>
+          <div style="display:flex;gap:12px;font-size:13px"><span style="color:var(--accent);font-family:'DM Mono',monospace;flex-shrink:0;min-width:52px">Week 7</span><span style="color:var(--muted)">Mood engine · time-of-day pattern learning</span></div>
+          <div style="display:flex;gap:12px;font-size:13px"><span style="color:var(--accent);font-family:'DM Mono',monospace;flex-shrink:0;min-width:52px">Week 8</span><span style="color:var(--muted)">Dashboard polish · end-to-end POC · demo ready</span></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const STATE={signals:JSON.parse(localStorage.getItem('ct_signals')||'[]'),preferences:JSON.parse(localStorage.getItem('ct_prefs')||'[]'),fingerprint:JSON.parse(localStorage.getItem('ct_fp')||'{}'),recommendations:JSON.parse(localStorage.getItem('ct_recs')||'[]')};
+function save(){localStorage.setItem('ct_signals',JSON.stringify(STATE.signals));localStorage.setItem('ct_prefs',JSON.stringify(STATE.preferences));localStorage.setItem('ct_fp',JSON.stringify(STATE.fingerprint));localStorage.setItem('ct_recs',JSON.stringify(STATE.recommendations))}
+function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.getElementById('page-'+id).classList.add('active');const navItems=document.querySelectorAll('.nav-item');navItems.forEach(n=>{if(n.textContent.trim().toLowerCase().includes(id.substring(0,4)))n.classList.add('active')});if(id==='dashboard')renderDashboard();if(id==='fingerprint')renderFingerprint();if(id==='preferences')renderPrefs();if(id==='signals')renderSignals()}
+function toast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.className='toast',2800)}
+function getContext(){const now=new Date();const h=now.getHours();const dow=now.getDay();const isWeekend=dow===0||dow===6;const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];let slot,mood;if(h>=5&&h<9){slot='Morning';mood='focused'}else if(h>=9&&h<13){slot='Midday';mood='exploratory'}else if(h>=13&&h<18){slot='Afternoon';mood='active'}else if(h>=18&&h<22){slot='Evening';mood='relaxed'}else{slot='Late night';mood='chill'}return{h,dow,isWeekend,slot,mood,day:days[dow]}}
+const TRAIT_MAP={'science':'Science & Tech','technology':'Science & Tech','physics':'Science & Tech','ai':'Science & Tech','documentary':'Documentary','investigation':'Documentary','comedy':'Comedy','funny':'Comedy','humor':'Comedy','music':'Music','ambient':'Music','jazz':'Music','lofi':'Music','classical':'Music','drama':'Drama','film':'Drama','cinema':'Drama','history':'History','historical':'History','education':'Education','tutorial':'Education','explained':'Education','sports':'Sports','football':'Sports','soccer':'Sports','basketball':'Sports','cricket':'Sports','travel':'Travel','explore':'Travel','adventure':'Travel','gaming':'Gaming','game':'Gaming','news':'News','politics':'News'};
+function computeFingerprint(){const scores={};STATE.signals.forEach(s=>{const w=s.event==='liked'?1.5:s.event==='saved'?1.2:s.event==='watched'?0.8:s.event==='skipped'?-0.5:0.5;const text=((s.title||'')+' '+(s.genre||'')+' '+(s.type||'')).toLowerCase();Object.entries(TRAIT_MAP).forEach(([kw,trait])=>{if(text.includes(kw))scores[trait]=(scores[trait]||0)+w})});const max=Math.max(...Object.values(scores),1);const fp={};Object.entries(scores).forEach(([t,v])=>{if(v>0)fp[t]=Math.round(v/max*100)/100});STATE.fingerprint=fp;save();return fp}
+function parseCommand(cmd){const lower=cmd.toLowerCase().trim();let action='ignore';if(lower.includes('boost')||lower.startsWith('more '))action='boost';else if(lower.includes('filter')||lower.includes('only after'))action='filter';const timeMatch=lower.match(/(after \d+\s*pm|after \d+\s*am|mornings?|evenings?|weekends?|late night)/i);const time=timeMatch?timeMatch[0]:null;const topic=lower.replace(/(ignore|boost|more|no |filter|after \d+\s*[ap]m|mornings?|evenings?|weekends?|late night|content|films?|videos?|music|on |please)/g,'').trim();return{action,topic:topic||null,time_condition:time,reason:cmd,added_at:new Date().toISOString()}}
+function applyPreferences(candidates){const ctx=getContext();return candidates.filter(item=>{const text=((item.title||'')+' '+(item.genre||'')+' '+(item.topic||'')).toLowerCase();for(const rule of STATE.preferences){const rTopic=(rule.topic||'').toLowerCase();if(!rTopic||!text.includes(rTopic))continue;if(rule.time_condition){const tc=rule.time_condition.toLowerCase();const am=tc.match(/after (\d+)\s*(pm|am)/);if(am){let rh=parseInt(am[1]);if(am[2]==='pm'&&rh!==12)rh+=12;if(ctx.h<rh)continue}if(tc.includes('weekend')&&!ctx.isWeekend)continue;if(tc.includes('morning')&&ctx.slot!=='Morning')continue}if(rule.action==='ignore'||rule.action==='filter')return false}return true}).map(item=>{let boost=1;const text=((item.title||'')+' '+(item.genre||'')+' '+(item.topic||'')).toLowerCase();STATE.preferences.forEach(rule=>{if(rule.action==='boost'&&rule.topic&&text.includes(rule.topic.toLowerCase()))boost*=1.4});return{...item,score:Math.min(1,(item.score||0.7)*boost)}}).sort((a,b)=>b.score-a.score)}
+async function getRecommendations(){const btn=document.getElementById('recBtn');btn.textContent='⟳ Thinking...';btn.disabled=true;const fp=computeFingerprint();const ctx=getContext();const typeFilter=document.getElementById('recTypeFilter').value;const moodFilter=document.getElementById('recMoodFilter').value||ctx.mood;const topTraits=Object.entries(fp).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([t,s])=>t+': '+Math.round(s*100)+'%').join(', ')||'No fingerprint yet — using defaults';const recentTitles=STATE.signals.slice(-10).map(s=>s.title).filter(Boolean).join(', ')||'none yet';const activePrefsSummary=STATE.preferences.map(p=>p.action+' "'+( p.topic||'')+'" '+(p.time_condition||'')).join('; ')||'none';const prompt=`You are CuratorTaste AI. Generate 5 personalised entertainment recommendations.\n\nTaste fingerprint: ${topTraits}\nRecent history: ${recentTitles}\nContext: ${ctx.day}, ${ctx.h}:00 (${ctx.slot}), mood: ${moodFilter}${typeFilter!=='all'?', type: '+typeFilter:''}\nActive rules: ${activePrefsSummary}\n\nReturn ONLY valid JSON, no markdown:\n{"context_note":"one sentence","recommendations":[{"title":"exact title","creator":"channel/director/artist","content_type":"youtube|movie|music","genre":"genre","topic":"main topic","why":"one sentence matching fingerprint","score":0.0}]}`;try{const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});const data=await resp.json();const raw=data.content?.[0]?.text?.trim().replace(/```json|```/g,'').trim();const result=JSON.parse(raw);let recs=result.recommendations||[];recs=applyPreferences(recs);STATE.recommendations=recs;save();renderRecommendationList(recs,result.context_note);renderDashboard();toast('✦ '+recs.length+' picks ready','success')}catch(e){const demoRecs=getDemoRecs(ctx,typeFilter);STATE.recommendations=demoRecs;save();renderRecommendationList(demoRecs,'Demo picks for '+ctx.slot.toLowerCase()+' '+moodFilter+' mood — add ANTHROPIC_API_KEY for live AI picks');renderDashboard();toast('Showing demo picks — add Anthropic API key for live AI')}btn.textContent='✦ Get AI picks';btn.disabled=false}
+function getDemoRecs(ctx,typeFilter){const all=[{title:'Kurzgesagt — The Fermi Paradox',creator:'Kurzgesagt',content_type:'youtube',genre:'science explainer',topic:'science',why:'Hits your science & tech trait — mind-expanding 12-min watch',score:0.94},{title:'Aftersun (2022)',creator:'Charlotte Wells',content_type:'movie',genre:'slow burn drama',topic:'drama',why:'Matches your drama / thoughtful cinema fingerprint perfectly',score:0.91},{title:'Khruangbin — A La Sala',creator:'Khruangbin',content_type:'music',genre:'psychedelic soul',topic:'music',why:'Aligns with ambient and world music traits in your fingerprint',score:0.89},{title:'Veritasium — The Biggest Myth in Education',creator:'Veritasium',content_type:'youtube',genre:'education',topic:'science',why:'Education + science double-hit on your top traits',score:0.87},{title:'Past Lives (2023)',creator:'Celine Song',content_type:'movie',genre:'romantic drama',topic:'drama',why:'Emotional slow burn — perfect for '+ctx.slot.toLowerCase()+' wind-down',score:0.85}];const filtered=typeFilter!=='all'?all.filter(r=>r.content_type===typeFilter):all;return applyPreferences(filtered)}
+function renderRecommendationList(recs,contextNote){const el=document.getElementById('recList');if(!recs.length){el.innerHTML='<div class="empty"><div class="empty-text">All picks filtered by your preference rules</div></div>';return}const icons={youtube:'▶',movie:'🎬',music:'♪'};const bg={youtube:'rgba(124,110,247,.15)',movie:'rgba(78,205,196,.12)',music:'rgba(247,199,110,.12)'};const bc={youtube:'var(--accent)',movie:'var(--accent2)',music:'var(--accent3)'};el.innerHTML=recs.map(r=>`<div class="rec-item"><div class="rec-thumb" style="background:${bg[r.content_type]||'var(--surface2)'}">${icons[r.content_type]||'•'}</div><div class="rec-body"><div class="rec-title">${r.title}</div><div class="rec-meta">${r.creator} · ${r.genre}</div><div class="rec-meta" style="font-style:italic;margin-top:2px">${r.why}</div><div class="rec-bar-wrap"><div class="rec-bar-bg"><div class="rec-bar" style="width:${Math.round(r.score*100)}%;background:${bc[r.content_type]||'var(--accent)'}"></div></div><span class="rec-score" style="color:${bc[r.content_type]||'var(--accent)'}">${Math.round(r.score*100)}%</span></div></div></div>`).join('');if(contextNote)document.getElementById('recContextNote').textContent=contextNote}
+function renderDashboard(){const ctx=getContext();const fp=computeFingerprint();const h=ctx.h;document.getElementById('greeting').textContent=(h<12?'Good morning':h<18?'Good afternoon':'Good evening')+', Akhil';document.getElementById('contextLine').textContent=ctx.day+' · '+ctx.h+':'+(new Date().getMinutes()+'').padStart(2,'0')+' · '+ctx.slot+' · '+ctx.mood+' mode';const tc=Object.keys(fp).length;document.getElementById('statTaste').textContent=tc?Math.min(99,60+tc*4):'—';document.getElementById('statGems').textContent=STATE.recommendations.length;document.getElementById('statSignals').textContent=STATE.signals.length;document.getElementById('statPrefs').textContent=STATE.preferences.length;document.getElementById('totalSignals').textContent=STATE.signals.length;document.getElementById('totalPrefs').textContent=STATE.preferences.length;const dashRecsEl=document.getElementById('dashRecs');if(STATE.recommendations.length){const icons={youtube:'▶',movie:'🎬',music:'♪'};const bg={youtube:'rgba(124,110,247,.15)',movie:'rgba(78,205,196,.12)',music:'rgba(247,199,110,.12)'};const bc={youtube:'var(--accent)',movie:'var(--accent2)',music:'var(--accent3)'};dashRecsEl.innerHTML=STATE.recommendations.slice(0,3).map(r=>`<div class="rec-item"><div class="rec-thumb" style="background:${bg[r.content_type]||'var(--surface2)'}">${icons[r.content_type]||'•'}</div><div class="rec-body"><div class="rec-title">${r.title}</div><div class="rec-meta">${r.creator} · ${r.genre}</div><div class="rec-bar-wrap"><div class="rec-bar-bg"><div class="rec-bar" style="width:${Math.round(r.score*100)}%;background:${bc[r.content_type]||'var(--accent)'}"></div></div><span class="rec-score" style="color:${bc[r.content_type]||'var(--accent)'}">${Math.round(r.score*100)}%</span></div></div></div>`).join('')}const topTraits=Object.entries(fp).sort((a,b)=>b[1]-a[1]).slice(0,4);const colors=['var(--accent)','var(--accent2)','var(--accent3)','var(--red)'];document.getElementById('dashFingerprint').innerHTML=topTraits.length?topTraits.map(([t,s],i)=>`<div class="fp-row"><div class="fp-labels"><span class="fp-trait">${t}</span><span class="fp-pct" style="color:${colors[i]}">${Math.round(s*100)}%</span></div><div class="fp-bar-bg"><div class="fp-bar" style="width:${Math.round(s*100)}%;background:${colors[i]}"></div></div></div>`).join(''):'<div class="empty"><div class="empty-text">Log signals to build fingerprint</div></div>';document.getElementById('moodTags').innerHTML=`<span class="tag accent">${ctx.h}:${(new Date().getMinutes()+'').padStart(2,'0')}</span><span class="tag green">${ctx.isWeekend?'Weekend':'Weekday'}</span><span class="tag">${ctx.mood}</span>`;const moodPicks={chill:{title:'The Wire — S1',sub:'Slow build drama · matches late night pattern'},focused:{title:'Lex Fridman Podcast #431',sub:'Long-form conversation · morning focus fit'},exploratory:{title:'Kurzgesagt — The Egg',sub:'Mind-expanding short · midday curiosity hit'},relaxed:{title:'Khruangbin — Con Todo El Mundo',sub:'Ambient grooves · evening wind-down'},active:{title:'Abstract: The Art of Design',sub:'Visual documentary · afternoon energy'}};const pick=moodPicks[ctx.mood]||moodPicks.relaxed;document.getElementById('moodPick').textContent=pick.title;document.getElementById('moodSub').textContent=pick.sub;const insights=[];if(STATE.preferences.find(p=>p.action==='ignore')){const rule=STATE.preferences.find(p=>p.action==='ignore');insights.push({color:'var(--accent)',text:'You said <strong>ignore "'+rule.topic+'"</strong> — curator filters this from all picks.'})}if(STATE.signals.filter(s=>s.type==='movie').length>1)insights.push({color:'var(--accent2)',text:'<strong>'+STATE.signals.filter(s=>s.type==='movie').length+' movie signals</strong> logged — film traits added to fingerprint.'});if(STATE.signals.filter(s=>s.event==='skipped').length>0)insights.push({color:'var(--red)',text:'<strong>'+STATE.signals.filter(s=>s.event==='skipped').length+' skipped signals</strong> — curator is down-ranking those topics.'});insights.push({color:'var(--accent3)',text:'<strong>'+ctx.slot+'</strong> detected — picks tuned for '+ctx.mood+' mood.'});document.getElementById('agentInsights').innerHTML=insights.slice(0,4).map(ins=>`<div class="insight-row"><div class="insight-dot" style="background:${ins.color}"></div><div class="insight-text">${ins.text}</div></div>`).join('')}
+function renderFingerprint(){const fp=computeFingerprint();const colors=['var(--accent)','var(--accent2)','var(--accent3)','var(--red)','#7ec8e3','#a8e6cf'];const el=document.getElementById('fingerprintBars');const sorted=Object.entries(fp).sort((a,b)=>b[1]-a[1]);el.innerHTML=sorted.length?sorted.map(([t,s],i)=>`<div class="fp-row"><div class="fp-labels"><span class="fp-trait">${t}</span><span class="fp-pct" style="color:${colors[i%colors.length]}">${Math.round(s*100)}%</span></div><div class="fp-bar-bg"><div class="fp-bar" style="width:${Math.round(s*100)}%;background:${colors[i%colors.length]}"></div></div></div>`).join(''):'<div class="empty"><div class="empty-text">Log signals to build your fingerprint</div></div>';const byType={youtube:0,movie:0,music:0};STATE.signals.forEach(s=>{if(byType[s.type]!==undefined)byType[s.type]++});const total=STATE.signals.length||1;document.getElementById('genreBreakdown').innerHTML=Object.entries(byType).map(([t,c])=>`<div class="fp-row"><div class="fp-labels"><span class="fp-trait">${t.charAt(0).toUpperCase()+t.slice(1)}</span><span class="fp-pct">${c}</span></div><div class="fp-bar-bg"><div class="fp-bar" style="width:${Math.round(c/total*100)}%;background:var(--accent)"></div></div></div>`).join('');const bySlot={};STATE.signals.forEach(s=>{const h=new Date(s.at).getHours();const slot=h<9?'Morning':h<13?'Midday':h<18?'Afternoon':h<22?'Evening':'Late night';bySlot[slot]=(bySlot[slot]||0)+1});const patternEl=document.getElementById('timePatterns');patternEl.innerHTML=Object.keys(bySlot).length?Object.entries(bySlot).map(([slot,c])=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--muted)">${slot}</span><span style="font-family:'DM Mono',monospace;color:var(--accent)">${c} signals</span></div>`).join(''):'<span style="color:var(--muted);font-size:13px">Log signals to see time patterns.</span>'}
+function addPref(){const input=document.getElementById('prefInput');const cmd=input.value.trim();if(!cmd)return;if(cmd.toLowerCase().includes('reset')){clearAllPrefs();input.value='';return}const rule=parseCommand(cmd);STATE.preferences.push(rule);save();input.value='';renderPrefs();renderDashboard();toast('Rule added: '+rule.action+' "'+(rule.topic||'')+'"','success')}
+function setQuick(cmd){document.getElementById('prefInput').value=cmd;document.getElementById('prefInput').focus()}
+function deletePref(i){STATE.preferences.splice(i,1);save();renderPrefs();renderDashboard();toast('Rule removed')}
+function clearAllPrefs(){if(!STATE.preferences.length)return;STATE.preferences=[];save();renderPrefs();renderDashboard();toast('All rules cleared')}
+function renderPrefs(){document.getElementById('prefCount').textContent=STATE.preferences.length;document.getElementById('statPrefs').textContent=STATE.preferences.length;const el=document.getElementById('prefList');el.innerHTML=STATE.preferences.length?STATE.preferences.map((r,i)=>`<div class="pref-rule"><span class="pref-action-badge ${r.action==='ignore'?'badge-ignore':r.action==='boost'?'badge-boost':'badge-filter'}">${r.action}</span><span class="pref-reason">${r.reason}</span>${r.time_condition?`<span class="pref-time">${r.time_condition}</span>`:''}<button class="pref-delete" onclick="deletePref(${i})">×</button></div>`).join(''):'<div class="empty"><div class="empty-text">No rules yet — add one above</div></div>'}
+function logSignal(){const title=document.getElementById('sigTitle').value.trim();if(!title){toast('Enter a title first','error');return}const signal={event:document.getElementById('sigEvent').value,type:document.getElementById('sigType').value,title,genre:document.getElementById('sigGenre').value.trim(),at:new Date().toISOString()};STATE.signals.unshift(signal);save();document.getElementById('sigTitle').value='';document.getElementById('sigGenre').value='';renderSignals();renderDashboard();toast('Signal logged: '+signal.event+' · '+title,'success')}
+function renderSignals(){document.getElementById('sigCount').textContent=STATE.signals.length;const el=document.getElementById('sigList');const evClass={liked:'ev-liked',watched:'ev-watched',skipped:'ev-skipped',saved:'ev-saved'};el.innerHTML=STATE.signals.length?STATE.signals.slice(0,50).map(s=>`<div class="signal-row"><span class="signal-event ${evClass[s.event]||'ev-watched'}">${s.event}</span><span class="signal-title">${s.title}${s.genre?' · <em style="color:var(--muted);font-style:normal">'+s.genre+'</em>':''}</span><span class="signal-src">${s.type}</span><span class="signal-time">${formatTime(s.at)}</span></div>`).join(''):'<div class="empty"><div class="empty-icon">≋</div><div class="empty-text">No signals yet</div></div>'}
+function formatTime(iso){try{const d=new Date(iso);const diff=Date.now()-d;if(diff<60000)return'just now';if(diff<3600000)return Math.round(diff/60000)+'m ago';if(diff<86400000)return Math.round(diff/3600000)+'h ago';return d.toLocaleDateString()}catch{return''}}
+renderDashboard();renderPrefs();renderSignals();
+</script>
+</body>
+</html>
